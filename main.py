@@ -1,115 +1,96 @@
-import pygame
+from imgui.integrations.pygame import PygameRenderer
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 from Body import *
-
-
-pygame.init()
-
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-
-GRAVITY = 0.5
-TIME_STEP = 0.01
-DAMPENING = 0.85
-
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), DOUBLEBUF|OPENGL)
-pygame.display.set_caption("N body problem 3D")
-
-
-def setup_lighting():
-    glEnable(GL_LIGHTING)
-    glEnable(GL_LIGHT0)
-    glEnable(GL_COLOR_MATERIAL)
-    
-    light_position = [1, 1, 1, 0]  # Directional light
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position)
-    
-    ambient_light = [0.2, 0.2, 0.2, 1.0]
-    diffuse_light = [0.8, 0.8, 0.8, 1.0]
-    specular_light = [1.0, 1.0, 1.0, 1.0]
-    
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_light)
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_light)
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_light)
-
-
-
-def draw_sphere(body):
-    glPushMatrix()
-    glTranslatef(body.x, body.y, body.z)
-    color = pygame.Color(body.color)  # Ensure it's a pygame.Color instance
-    glColor3f(color.r / 255.0, color.g / 255.0, color.b / 255.0)
-    quadric = gluNewQuadric()
-    gluQuadricNormals(quadric, GLU_SMOOTH)
-    gluSphere(quadric, body.r, 32, 32)
-    glPopMatrix()
+from Camera import *
+from Sphere import*
+from Settings import Settings
+from Gui import *
+from Physic import *
+import pygame
+import glm 
 
 
 def main():
-    glEnable(GL_DEPTH_TEST)
-    glMatrixMode(GL_PROJECTION)
-    gluPerspective(45, (SCREEN_WIDTH / SCREEN_HEIGHT), 0.1, 175.0)
-    glMatrixMode(GL_MODELVIEW)
-    glTranslatef(0.0, 0.0, -35)
-
-    setup_lighting()
+    pygame.init()
+    pygame.display.set_mode(
+        (Settings.SCREEN_WIDTH, Settings.SCREEN_HEIGHT),
+        pygame.DOUBLEBUF | pygame.OPENGL | pygame.RESIZABLE
+    )
+    pygame.display.set_caption("N body problem 3D")
     
-    ''' VERTICAL AND HORIZONTAL ORBITS
-    bodies = [
-        Body(0, 0, -5, 3, 0, 0, 0.4, 3, RED),
-        Body(0, 0, 5, 0, 0, 0, 1, 300, RED), 
-        Body(0, 4, 0, -3, 0, 0, 0.3, 1, BLUE)
-    ]
-    '''
-
-    ''' ORBIT STEAL SCENARIO
-    mass = 200
-    bodies = [
-    Body(-12, 0, 0, 0.347, 0.532, 0, 1.2, mass, WHITE),  # Left body
-    Body(12, 0, 0, 0.347, 0.532, 0, 1.2, mass, WHITE),  # Right body
-    Body(0, 0, 0, -2 * 0.347, -2 * 0.532, 0, 1.2, mass, WHITE)   # Center body
-    ]
-
-    '''
-
-    '''
-    mass = 400
-    bodies = [
-    Body(-9, 0, 0, 0.347, 1.532, 0, 1, mass, WHITE),  # Left body
-    Body(9, 0, 0, 0.347, 1.532, 0, 1, mass, WHITE),  # Right body
-    Body(0, 0, 0, -2 * 0.347, -2 * 1.532, 0, 1, mass, WHITE)   # Center body
-    ]
-    '''
-
-
-    #''' RANDOM BODIES GENERATION
-    bodies = generate_random_bodies()
-    for body in bodies:
-        print(f"Body at ({body.x}, {body.y}, {body.z}) with velocity ({body.v_x}, {body.v_y}, {body.v_z}), radius {body.r}, mass {body.mass}, color {body.color}")
-    #'''
-
     clock = pygame.time.Clock()
     running = True
+    
+    shader = load_shader("shaders/vertex_shader.glsl", 
+                         "shaders/fragment_shader.glsl")
+    
+    
+    camera = Camera(shader)
+    light_pos = glm.vec3(10.0, 10.0, 10.0)
+    light_dir = glm.normalize(glm.vec3(-1.0, -1.0, -1.0))
 
-    while running:
-        screen.fill(GREY)
+    view_pos = camera.position
+    light_color = glm.vec3(1.0, 1.0, 1.0)
+    
+    glUseProgram(shader)
+    #glUniform3fv(glGetUniformLocation(shader, "lightPos"), 1, glm.value_ptr(light_pos))
+    glUniform3fv(glGetUniformLocation(shader, "lightDir"), 1, glm.value_ptr(light_dir))
+    glUniform3fv(glGetUniformLocation(shader, "viewPos"), 1, glm.value_ptr(view_pos))
+    glUniform3fv(glGetUniformLocation(shader, "lightColor"), 1, glm.value_ptr(light_color))
+    
+    
+    VAO, index_count = setup_sphere_vao()
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+    
+
+    #   RANDOM BODIES
+    bodies = generate_random_bodies(80)
+    
+    gui = Gui()
+    
+    while running:       
+        glClearColor(0.1, 0.1, 0.1, 1)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
+            if gui.process_event(event):
+                camera.handle_event(event)
+        gui.process_input()
+
+        camera.update()
+        camera.apply(shader)
+       
+        for body in bodies:
+            draw_sphere(body, shader, VAO, index_count)     
+            body.update_position()
+
         step(bodies)
         detect_collisions(bodies)
 
-        for body in bodies:
-            body.update_position()
-            draw_sphere(body)
+        gui.render() 
+        Settings.update_settings(gui.gravity, gui.time_step, gui.dampening)  
+
+        if gui.generate_bodies:
+            bodies = generate_random_bodies(gui.num_bodies)
+            gui.generate_bodies = False
+
+        if gui.demo_figure_8_pattern:
+            bodies = generate_figure_8_pattern()
+            gui.demo_figure_8_pattern = False
+
+        if gui.demo_Mini_solar_system:
+            bodies = Mini_solar_system()
+            gui.demo_Mini_solar_system = False
         
+
         pygame.display.flip()
-        clock.tick(60) 
+        clock.tick(100)
         
     pygame.quit()
 

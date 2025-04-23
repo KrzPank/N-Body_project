@@ -1,128 +1,95 @@
-import pygame
-import random
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
-import pygame.math
-from main import GRAVITY, TIME_STEP, DAMPENING
-
-
-WHITE = pygame.Color(255, 255, 255)
-BLACK = pygame.Color(0,0,0)
-GREY = pygame.Color(30, 30, 30)
-YELLOW = pygame.Color(255, 255, 102)
-BROWN = pygame.Color(141, 47, 11)
-RED = pygame.Color(220, 0, 0)
-BLUE = pygame.Color(14, 120, 205)
-
+from Settings import Settings
+import random
+import glm
+import colorsys
+import numpy as np
+RED = glm.vec3(1.0, 0.0, 0.0)
+GREEN = glm.vec3(0.0, 1.0, 0.0)
+BLUE = glm.vec3(0.0, 0.0, 1.0)
+WHITE = glm.vec3(1.0, 1.0, 1.0)
+YELLOW = glm.vec3(1.0, 1.0, 0)
 
 class Body:
-    def __init__(self, x, y, z, v_x, v_y, v_z, r, mass, color):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.v_x = v_x
-        self.v_y = v_y
-        self.v_z = v_z
+    def __init__(self, position, velocity, r, mass, color):
+        self.pos = position #glm.vec3(position)
+        self.v = velocity #glm.vec3(velocity)
         self.r = r
         self.mass = mass
         self.color = color
 
+    def show_info(self):
+        print(f"Position: ({self.pos}), velocity:({self.v}), radius:{self.r}, mass:{self.mass}, color:{self.color}")
+
+
     def update_position(self):
-        self.x += self.v_x * TIME_STEP
-        self.y += self.v_y * TIME_STEP
-        self.z += self.v_z * TIME_STEP
+        self.pos += self.v * Settings.TIME_STEP
 
 
+def Mini_solar_system():
+    sun_mass = 1000.0
+    sun_radius = 4.0
+
+    # Distance from the Sun's surface (not from center), to improve visual clarity
+    planet_visual_distances = {
+        "Mercury": (5, 0.3, glm.vec3(1.0, 1.0, 1.0)),
+        "Venus":   (8, 0.5, glm.vec3(1.0, 0.8, 0.0)),
+        "Earth":   (12, 0.7, glm.vec3(0.0, 0.0, 1.0)),
+        "Mars":    (15, 0.6, glm.vec3(1.0, 0.0, 0.0)),
+        "Jupiter": (22, 1.4, glm.vec3(1.0, 1.0, 0.0)),
+        "Saturn":  (27, 1.2, glm.vec3(1.0, 0.9, 0.0)),
+        "Uranus":  (30, 1.0, glm.vec3(0.5, 0.5, 1.0)),
+        "Neptune": (34, 1.0, glm.vec3(0.0, 0.0, 1.0))
+    }
+
+    # Create solar system with scaled distances
+    solar_system = [
+        Body(position=glm.vec3(0, 0, 0), velocity=glm.vec3(0, 0, 0), r=sun_radius, mass=sun_mass, color=YELLOW),  # Sun
+    ]
+   
+    # Add planets with non-realistic visual distances
+    for name, (offset_from_surface, radius, color) in planet_visual_distances.items():
+        distance = sun_radius + offset_from_surface
+        orbital_velocity = np.sqrt(Settings.GRAVITY * sun_mass / distance)
+        velocity = glm.vec3(0, orbital_velocity, 0)  # Orbiting in the y-direction
+        position = glm.vec3(distance, 0, 0)          # Along x-axis
+
+        solar_system.append(Body(position=position, velocity=velocity, r=radius, mass=1.0, color=color))
+        
+    return solar_system
 
 
-def detect_collisions(bodies):
-    n = len(bodies)
-    for i in range(n):
-        for j in range(i + 1, n):
-            p1, p2 = bodies[i], bodies[j]
-            
-            distance_vector = pygame.math.Vector3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
-            distance = distance_vector.length()
+def generate_figure_8_pattern():
+    import numpy as np
 
-            #print(f"Distance between bodies {i} and {j}: {distance}")
-            #print(f"Sum of radii: {p1.r + p2.r}")
-            
-            if distance <= (p1.r + p2.r):
-                normal = distance_vector.normalize()
-                
-                relative_velocity = pygame.math.Vector3(p2.v_x - p1.v_x, p2.v_y - p1.v_y, p2.v_z - p1.v_z)
-                velocity_along_normal = relative_velocity.dot(normal)
+    scale = 12.0 
+    velocity_scale = np.sqrt(scale)
 
-                if velocity_along_normal < 0: 
-                    impulse = -2 * velocity_along_normal / (p1.mass + p2.mass)
-                    overlap = (p1.r + p2.r) - distance
-                    correction_factor = (overlap) / (p1.mass + p2.mass)
+    pos1 = glm.vec3(0.97000436, -0.24308753, 0) * scale
+    pos2 = glm.vec3(-0.97000436, 0.24308753, 0) * scale
+    pos3 = glm.vec3(0, 0, 0)
 
-                    #print(f"Distance between bodies before correction: {distance}")
-                    #print(f"Sum of radii: {p1.r + p2.r}")
-                    #print(f"correction factor:{correction_factor}")
+    base_vel1 = glm.vec3(0.466203685, 0.43236573, 0)
+    base_vel2 = glm.vec3(0.466203685, 0.43236573, 0)
+    base_vel3 = glm.vec3(-0.93240737, -0.86473146, 0)
 
-                    p1.x -= correction_factor * p2.mass * normal.x
-                    p1.y -= correction_factor * p2.mass * normal.y
-                    p1.z -= correction_factor * p2.mass * normal.z
-                    p2.x += correction_factor * p1.mass * normal.x
-                    p2.y += correction_factor * p1.mass * normal.y
-                    p2.z += correction_factor * p1.mass * normal.z
+    gravity_scale = np.sqrt(0.5)
+    vel1 = base_vel1 * gravity_scale * velocity_scale
+    vel2 = base_vel2 * gravity_scale * velocity_scale
+    vel3 = base_vel3 * gravity_scale * velocity_scale
 
-                    p1.v_x += impulse * p2.mass * -normal.x * DAMPENING
-                    p1.v_y += impulse * p2.mass * -normal.y * DAMPENING
-                    p1.v_z += impulse * p2.mass * -normal.z * DAMPENING
-                    p2.v_x -= impulse * p1.mass * -normal.x * DAMPENING
-                    p2.v_y -= impulse * p1.mass * -normal.y * DAMPENING
-                    p2.v_z -= impulse * p1.mass * -normal.z * DAMPENING
+    r = 1.0
+    mass = scale * scale
 
-                    #dv = pygame.math.Vector3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
-                    #d  = dv.length()
-                    #print(f"Distance between bodies after correction: {d}")
-                
-                
+    figure8_scenario = [
+        Body(position=pos1, velocity=vel1, r=r, mass=mass, color=glm.vec3(1, 0, 0)),
+        Body(position=pos2, velocity=vel2, r=r, mass=mass, color=glm.vec3(0, 1, 0)),
+        Body(position=pos3, velocity=vel3, r=r, mass=mass, color=glm.vec3(0, 0, 1)),
+    ]
 
-def apply_gravity(bodies):
-    n = len(bodies)
-    accelerations = [(0, 0, 0) for _ in range(n)]
-
-    for i in range(n):
-        for j in range(i + 1, n):
-            p1, p2 = bodies[i], bodies[j]
-            distance_vector = pygame.math.Vector3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
-            distance = distance_vector.length()
-
-            if distance == 0:
-                continue
-
-            normalized_direction = distance_vector / distance
-            a_gravity = GRAVITY / pow(distance, 2)
-            
-            acceleration = normalized_direction * a_gravity
-
-            # Update accelerations
-            ax1, ay1, az1 = accelerations[i]
-            ax2, ay2, az2 = accelerations[j]
-            
-            accelerations[i] = (ax1 + acceleration.x * p2.mass, ay1 + acceleration.y * p2.mass, az1 + acceleration.z * p2.mass)
-            accelerations[j] = (ax2 - acceleration.x * p1.mass, ay2 - acceleration.y * p1.mass, az2 - acceleration.z * p1.mass)
-
-    return accelerations
-
-def step(bodies):
-    accelerations = apply_gravity(bodies)
-
-    for i, body in enumerate(bodies):
-        ax, ay, az = accelerations[i]
-
-        # Update velocity
-        body.v_x += ax * TIME_STEP
-        body.v_y += ay * TIME_STEP
-        body.v_z += az * TIME_STEP
-
-        # Update position
-        body.update_position()
+    return figure8_scenario
 
 
 def generate_random_bodies(num_bodies=None):
@@ -131,21 +98,22 @@ def generate_random_bodies(num_bodies=None):
 
     bodies = []
     for _ in range(num_bodies):
-        x = random.uniform(-10, 10)
-        y = random.uniform(-10, 10)
-        z = random.uniform(-10, 10)
-        v_x = random.uniform(-1, 1)
-        v_y = random.uniform(-1, 1)
-        v_z = random.uniform(-1, 1)
-        r = random.uniform(0.1, 1.5)
-        mass = random.uniform(1, 300)
-        color = pygame.Color(
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255)
-        )
+        position = glm.vec3(random.uniform(-10, 10),
+                       random.uniform(-10, 10),
+                       random.uniform(-10, 10))
+        velocity = glm.vec3(random.uniform(-2, 2),
+                            random.uniform(-2, 2),
+                            random.uniform(-2, 2))
+        r = random.uniform(0.2, 1.5)
+        mass = random.uniform(20, 400)
+        color = glm.vec3(0.9, 0, 0)
+        
+        h = random.random()
+        s = random.uniform(0.7, 1.0)
+        v = random.uniform(0.7, 1.0)
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+        color = glm.vec3(r, g, b)
 
-        bodies.append(Body(x, y, z, v_x, v_y, v_z, r, mass, color))
+        bodies.append(Body(position, velocity, r, mass, color))
 
     return bodies
-
