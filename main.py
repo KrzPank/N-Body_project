@@ -1,4 +1,3 @@
-from imgui.integrations.pygame import PygameRenderer
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
@@ -46,13 +45,33 @@ def main():
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
     
 
-    #   RANDOM BODIES
-    bodies = generate_random_bodies(80)
+    #   RANDOM BODIES START
+
+    bodies = [
+    Body(
+        position=glm.vec3(-5, 0, 0),
+        velocity=glm.vec3(1.0, 0, 0),
+        r=0.5,
+        mass=1000.0,
+        color=glm.vec3(1.0, 0.0, 0.0)  # Czerwony
+    ),
+    Body(
+        position=glm.vec3(5, 0, 0),
+        velocity=glm.vec3(-1.0, 0, 0),
+        r=0.5,
+        mass=1000.0,
+        color=glm.vec3(0.0, 0.0, 1.0)  # Niebieski
+    )
+    ]
+
+    bodies = generate_random_bodies(60)
     
+
     gui = Gui()
     
     while running:       
-        glClearColor(0.1, 0.1, 0.1, 1)
+        glEnable(GL_DEPTH_TEST)
+        glClearColor(0.15, 0.15, 0.15, 1)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         for event in pygame.event.get():
@@ -66,12 +85,11 @@ def main():
         camera.update()
         camera.apply(shader)
        
-        for body in bodies:
-            draw_sphere(body, shader, VAO, index_count)     
-            body.update_position()
-
         step(bodies)
         detect_collisions(bodies)
+
+        for body in bodies:
+            draw_sphere(body, shader, VAO, index_count) 
 
         gui.render() 
         Settings.update_settings(gui.gravity, gui.time_step, gui.dampening)  
@@ -80,7 +98,11 @@ def main():
             bodies = generate_random_bodies(gui.num_bodies)
             gui.generate_bodies = False
 
-        if gui.demo_figure_8_pattern:
+        if gui.demo_earth_moon:
+            bodies = generate_Earth_Moon()
+            gui.demo_earth_moon = False
+
+        if gui.demo_figure_8_pattern:   
             bodies = generate_figure_8_pattern()
             gui.demo_figure_8_pattern = False
 
@@ -88,9 +110,12 @@ def main():
             bodies = Mini_solar_system()
             gui.demo_Mini_solar_system = False
         
+        if gui.add_custom_body:
+            bodies = gui.bodies
+            gui.add_custom_body = False
 
         pygame.display.flip()
-        clock.tick(100)
+        clock.tick(Settings.FPS)
         
     pygame.quit()
 

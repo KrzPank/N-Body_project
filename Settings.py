@@ -10,12 +10,10 @@ class Settings:
     GRAVITY = 0.5
     TIME_STEP = 0.01
     DAMPENING = 0.85
+    FPS = 60
 
     @classmethod
-    def update_settings(cls, gravity, time_step, dampening):
-        cls.GRAVITY = gravity
-        cls.TIME_STEP = time_step
-        cls.DAMPENING = dampening
-
-
-
+    def update_settings(self, gravity, time_step, dampening):
+        self.GRAVITY = gravity
+        self.TIME_STEP = time_step
+        self.DAMPENING = dampening

@@ -17,33 +17,39 @@ def detect_collisions(bodies):
             distance = glm.length(distance_vector)
 
             #print(f"Distance between bodies {i} and {j}: {distance}")
-            #print(f"Sum of radii: {p1.r + p2.r}")
-            
+            #print(f"Velocities before correction p1: {p1.v[0]}, P2: {p2.v[0]}")
+
             if distance <= (p1.r + p2.r):
                 normal = glm.normalize(distance_vector)
                 
                 relative_velocity = p2.v - p1.v
                 velocity_along_normal = glm.dot(relative_velocity, normal)
+                
+                #print(f"Normals: {normal}")
+                #print(f"Velocity along normal: {velocity_along_normal}")
 
-                if velocity_along_normal < 0: 
-                    impulse = -2 * velocity_along_normal / (p1.mass + p2.mass)
+                t_mass = p1.mass + p2.mass
+
+
+                if velocity_along_normal <= 0: 
+                    impulse = -2 * velocity_along_normal / t_mass
                     overlap = (p1.r + p2.r) - distance
-                    correction_factor = overlap / (p1.mass + p2.mass)
+                    correction_factor = overlap / t_mass
 
-                    #print(f"Distance between bodies before correction: {distance}")
                     #print(f"Sum of radii: {p1.r + p2.r}")
                     #print(f"correction factor:{correction_factor}")
 
                     p1.pos -= correction_factor * p2.mass * normal
                     p2.pos += correction_factor * p1.mass * normal
-                    
+
                     p1.v += impulse * p2.mass * -normal * Settings.DAMPENING
                     p2.v -= impulse * p1.mass * -normal * Settings.DAMPENING
-
-                    #dv = pygame.math.Vector3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
-                    #d  = dv.length()
-                    #print(f"Distance between bodies after correction: {d}")
-                
+                    
+                    #dv = p2.pos - p1.pos
+                    #d = glm.length(dv)
+                    #print(f"Distance after correction: {d}")
+                    #print(f"Velocities after correction p1: {p1.v[0]}, P2: {p2.v[0]}")
+            
 
 def apply_gravity(bodies):
     n = len(bodies)
@@ -55,9 +61,6 @@ def apply_gravity(bodies):
             distance_vector = p2.pos - p1.pos
             distance = glm.length(distance_vector)
 
-            if distance == 0:
-                continue
-
             normalized_direction = glm.normalize(distance_vector)
             a_gravity = Settings.GRAVITY / (distance ** 2)
             acceleration = normalized_direction * a_gravity
@@ -68,9 +71,10 @@ def apply_gravity(bodies):
     return accelerations
 
 
+
 def step(bodies):
     accelerations = apply_gravity(bodies)
 
     for i, body in enumerate(bodies):
         body.v += accelerations[i] * Settings.TIME_STEP
-
+        body.pos += body.v * Settings.TIME_STEP

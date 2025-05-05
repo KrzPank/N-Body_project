@@ -11,7 +11,7 @@ class Camera:
     def __init__(self, shader, position=glm.vec3(0.0, 0.0, 35.0)):
         glMatrixMode(GL_PROJECTION)
         glUseProgram(shader)
-        projection = glm.perspective(glm.radians(45), Settings.SCREEN_WIDTH / Settings.SCREEN_HEIGHT, 0.1, 150.0)
+        projection = glm.perspective(glm.radians(45), Settings.SCREEN_WIDTH / Settings.SCREEN_HEIGHT, 0.1, 350.0)
         glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm.value_ptr(projection))
         glMatrixMode(GL_MODELVIEW)
 
@@ -28,6 +28,7 @@ class Camera:
         self.pitch = 0.0
         self.yaw = -90.0
 
+        self.temp_pos = pygame.mouse.get_pos()
         self.mouse_held = False
         self.keys = {pygame.K_w: False,
                        pygame.K_s: False,
@@ -69,12 +70,14 @@ class Camera:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 self.mouse_held = True
+                self.temp_pos = pygame.mouse.get_pos()
                 pygame.mouse.set_pos((Settings.SCREEN_WIDTH // 2, Settings.SCREEN_HEIGHT // 2))
                 pygame.event.set_grab(True)
                 pygame.mouse.set_visible(False)
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 self.mouse_held = False
+                pygame.mouse.set_pos(self.temp_pos)
                 pygame.event.set_grab(False)
                 pygame.mouse.set_visible(True)
         elif event.type == pygame.MOUSEMOTION and self.mouse_held:
