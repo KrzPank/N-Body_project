@@ -1,1 +1,4 @@
-Jest to projekt w języku Python, który do skompilowania i uruchomienia **wymaga języka Python 11**.
+## Wymagania
+
+- **Python 11.x** (wymagany – projekt wykorzystuje biblioteke dostępną tylko w tej wersji),
+- requirements.txt
