@@ -30,7 +30,6 @@ class Body:
 
 def generate_Earth_Moon():
     return [
-        # Earth
         Body(
             position=glm.vec3(0, 0, 0),
             velocity=glm.vec3(0, 0, 0),
@@ -40,7 +39,7 @@ def generate_Earth_Moon():
         ),
         Body(
             position=glm.vec3(4.84, 0, 0),
-            velocity=glm.vec3(0, 0, 2.8937 * np.cos(np.radians(5))),
+            velocity=glm.vec3(0, 2.8937 * np.sin(np.radians(5)), 2.8937),
             r=0.27,
             mass=1.0,
             color=glm.vec3(0.7, 0.7, 0.7)

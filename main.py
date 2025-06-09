@@ -22,19 +22,16 @@ def main():
     clock = pygame.time.Clock()
     running = True
     
-    shader = load_shader("shaders/vertex_shader.glsl", 
-                         "shaders/fragment_shader.glsl")
+    shader = load_shader("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl")
     
     
     camera = Camera(shader)
-    light_pos = glm.vec3(10.0, 10.0, 10.0)
     light_dir = glm.normalize(glm.vec3(-1.0, -1.0, -1.0))
 
     view_pos = camera.position
     light_color = glm.vec3(1.0, 1.0, 1.0)
     
     glUseProgram(shader)
-    #glUniform3fv(glGetUniformLocation(shader, "lightPos"), 1, glm.value_ptr(light_pos))
     glUniform3fv(glGetUniformLocation(shader, "lightDir"), 1, glm.value_ptr(light_dir))
     glUniform3fv(glGetUniformLocation(shader, "viewPos"), 1, glm.value_ptr(view_pos))
     glUniform3fv(glGetUniformLocation(shader, "lightColor"), 1, glm.value_ptr(light_color))
@@ -44,28 +41,8 @@ def main():
     glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
     
-
     #   RANDOM BODIES START
-
-    bodies = [
-    Body(
-        position=glm.vec3(-5, 0, 0),
-        velocity=glm.vec3(1.0, 0, 0),
-        r=0.5,
-        mass=1000.0,
-        color=glm.vec3(1.0, 0.0, 0.0)  # Czerwony
-    ),
-    Body(
-        position=glm.vec3(5, 0, 0),
-        velocity=glm.vec3(-1.0, 0, 0),
-        r=0.5,
-        mass=1000.0,
-        color=glm.vec3(0.0, 0.0, 1.0)  # Niebieski
-    )
-    ]
-
     bodies = generate_random_bodies(60)
-    
 
     gui = Gui()
     
@@ -113,6 +90,10 @@ def main():
         if gui.add_custom_body:
             bodies = gui.bodies
             gui.add_custom_body = False
+        
+        if gui.clear_bodies:
+            bodies = []
+            gui.clear_bodies = False
 
         pygame.display.flip()
         clock.tick(Settings.FPS)

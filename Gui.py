@@ -32,6 +32,7 @@ class Gui:
         self.demo_Mini_solar_system = False
         self.add_custom_body = False
         self.demo_earth_moon = False
+        self.clear_bodies = False
 
 
     def process_event(self, event):
@@ -47,7 +48,6 @@ class Gui:
         Settings.GRAVITY = self.gravity
         Settings.TIME_STEP = self.time_step
         Settings.DAMPENING = self.dampening
-        #print(f"gravity:{Settings.GRAVITY}, time_step:{Settings.TIME_STEP}, damp:{Settings.DAMPENING}")
 
 
     def render(self):
@@ -75,12 +75,11 @@ class Gui:
 
 
         if self.show_settings_window:
-            is_expand, self.show_settings_window = imgui.begin("Settings Window", True)
+            is_expand, self.show_settings_window = imgui.begin("Settings", True)
             if is_expand:
                 imgui.columns(2, "settings_columns", border=True)
                 imgui.text("Simulation Controls")
 
-                # Button to trigger reset
                 if imgui.button("Randomize Bodies"):
                     self.generate_bodies = True
 
@@ -88,7 +87,7 @@ class Gui:
 
                 imgui.text(" ")
 
-                if imgui.button("3 body problem"):
+                if imgui.button("Three Body Figure-8"):
                     self.demo_figure_8_pattern = True
 
                 if imgui.button("Mini solar system"):
@@ -99,14 +98,14 @@ class Gui:
 
                 imgui.next_column()
                 imgui.text("World Settings")
-
-                #changed, self.gravity = imgui.slider_float("Gravity", self.gravity, 0.0, 5.0)
-                #changed, self.time_step = imgui.slider_float("Time Step", self.time_step, 0.0000, 0.3, format="%.4f")
                 
                 changed, self.gravity = imgui.input_float("Gravity", self.gravity, 0.01)
                 changed, self.time_step = imgui.input_float("Time Step", self.time_step, 0.0005,  format="%.4f")
 
                 changed, self.dampening = imgui.slider_float("Dampening", self.dampening, 0.0, 1.0)
+
+                if imgui.button("Clear Bodies"):
+                    self.clear_bodies = True
 
                 if self.gravity < 0:
                     self.gravity = 0
@@ -119,8 +118,9 @@ class Gui:
             imgui.end()
 
 
+
         if self.show_custom_window:
-            is_expand, self.show_custom_window = imgui.begin("Custom Window", True)
+            is_expand, self.show_custom_window = imgui.begin("Custom", True)
             if is_expand:
                 imgui.text("Create New Body")
 
